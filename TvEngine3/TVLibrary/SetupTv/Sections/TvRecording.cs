@@ -31,6 +31,7 @@ using Gentle.Framework;
 using TvDatabase;
 using TvControl;
 using TvLibrary.Log;
+using TvThumbnails;
 using SetupTv.Dialogs;
 
 #endregion
@@ -234,6 +235,10 @@ namespace SetupTv.Sections
       enableDiskQuotaControls();
 
       LoadComboBoxDrive();
+
+      trackBarQuality.Value = Int32.Parse(layer.GetSetting("TVThumbnailsQuality", "4").Value);
+      checkBoxTVThumbs.Checked = (layer.GetSetting("TVThumbnails", "True").Value == "True");
+      checkBoxShareThumb.Checked = (layer.GetSetting("TVThumbnailsSharePreview", "False").Value == "True");
     }
 
     private static decimal ValueSanityCheck(int value, int min, int max)
@@ -303,6 +308,22 @@ namespace SetupTv.Sections
       setting.Persist();
 
       UpdateDriveInfo(true);
+
+      setting = layer.GetSetting("TVThumbnailsQuality", "4");
+      if (setting.Value != trackBarQuality.Value.ToString())
+        _needRestart = true;
+      setting.Value = trackBarQuality.Value.ToString();
+      setting.Persist();
+
+      setting = layer.GetSetting("TVThumbnails", "yes");
+      if (setting.Value != (checkBoxTVThumbs.Checked ? "false" : "true"))
+        _needRestart = true;
+      setting.Value = checkBoxTVThumbs.Checked ? "yes" : "no";
+      setting.Persist();
+
+      setting = layer.GetSetting("TVThumbnails", "yes");
+      setting.Value = checkBoxShareThumb.Checked ? "yes" : "no";
+      setting.Persist();
     }
 
     #endregion
@@ -439,7 +460,6 @@ namespace SetupTv.Sections
 
       MatroskaTagHandler.OnTagLookupCompleted -= OnLookupCompleted;
 
-      SaveSettings();
       if (_needRestart)
       {
         if (MessageBox.Show(this, "Changes made require TvService to restart. Restart it now?", "TvService",
@@ -530,6 +550,62 @@ namespace SetupTv.Sections
     {
       Log.Debug("Weekend Updated to : {0}", comboBoxWeekend.SelectedItem);
       _needRestart = true;
+    }
+
+    private void trackBarQuality_ValueChanged(object sender, EventArgs e)
+    {
+      switch (trackBarQuality.Value)
+      {
+        case 0:
+          Thumbs.Quality = Thumbs.ThumbQuality.fastest;
+          break;
+        case 1:
+          Thumbs.Quality = Thumbs.ThumbQuality.fast;
+          break;
+        case 2:
+          Thumbs.Quality = Thumbs.ThumbQuality.average;
+          break;
+        case 3:
+          Thumbs.Quality = Thumbs.ThumbQuality.higher;
+          break;
+        case 4:
+          Thumbs.Quality = Thumbs.ThumbQuality.highest;
+          break;
+      }
+      setThumbQualityLabels();
+      _needRestart = true;
+    }
+
+    private void setThumbQualityLabels()
+    {
+      switch (trackBarQuality.Value)
+      {
+        case 0:
+          labelCurrentResolution.Text = Convert.ToString((int)Thumbs.ThumbResolution) + " + " +
+                                        Convert.ToString((int)Thumbs.ThumbLargeResolution);
+          labelRecommendedCurrent.Text = @"Small CRTs";
+          break;
+        case 1:
+          labelCurrentResolution.Text = Convert.ToString((int)Thumbs.ThumbResolution) + " + " +
+                                        Convert.ToString((int)Thumbs.ThumbLargeResolution);
+          labelRecommendedCurrent.Text = "Small wide CRTs, medium CRTs";
+          break;
+        case 2:
+          labelCurrentResolution.Text = Convert.ToString((int)Thumbs.ThumbResolution) + " + " +
+                                        Convert.ToString((int)Thumbs.ThumbLargeResolution);
+          labelRecommendedCurrent.Text = "Large wide CRTs, small LCDs";
+          break;
+        case 3:
+          labelCurrentResolution.Text = Convert.ToString((int)Thumbs.ThumbResolution) + " + " +
+                                        Convert.ToString((int)Thumbs.ThumbLargeResolution);
+          labelRecommendedCurrent.Text = "LCDs, Plasmas";
+          break;
+        case 4:
+          labelCurrentResolution.Text = Convert.ToString((int)Thumbs.ThumbResolution) + " + " +
+                                        Convert.ToString((int)Thumbs.ThumbLargeResolution);
+          labelRecommendedCurrent.Text = "Very large LCDs, Projectors";
+          break;
+      }
     }
 
     #endregion

@@ -32,29 +32,33 @@ namespace TvThumbnails
 {
   public class ThumbProcessor
   {
-    private readonly string _recTvThumbsFolder;
-
     private readonly ProcessingQueue _queue;
 
     public ThumbProcessor()
     {
-      FileInfo fileInfo = new FileInfo(Assembly.GetCallingAssembly().Location);
-
-      _recTvThumbsFolder = fileInfo.DirectoryName + "\\Thumbs";
-
-      if (!Directory.Exists(_recTvThumbsFolder))
-      {
-        Directory.CreateDirectory(_recTvThumbsFolder);
-      }
-
       _queue = new ProcessingQueue(DoWork);
+    }
+
+    ~ThumbProcessor()
+    {
+      _queue.Dispose();
     }
 
     public void Start()
     {
-      _queue.EnqueueTask(Recording.ListAll().Select(recording => recording.FileName).ToList());
+      if (Thumbs.Enabled)
+      {
+        Thumbs.LoadSettings();
+        Thumbs.CreateFolders();
 
-      GlobalServiceProvider.Instance.Get<ITvServerEvent>().OnTvServerEvent += OnTvServerEvent;
+        _queue.EnqueueTask(Recording.ListAll().Select(recording => recording.FileName).ToList());
+
+        GlobalServiceProvider.Instance.Get<ITvServerEvent>().OnTvServerEvent += OnTvServerEvent;
+      }
+      else
+      {
+        Stop();
+      }
     }
 
     public void Stop()
@@ -63,12 +67,11 @@ namespace TvThumbnails
       {
         GlobalServiceProvider.Instance.Get<ITvServerEvent>().OnTvServerEvent -= OnTvServerEvent;
       }
-      _queue.Dispose();
     }
 
     public string GetThumbnailFolder()
     {
-      return _recTvThumbsFolder;
+      return Thumbs.ThumbnailFolder;
     }
 
     // TODO Clean up old thumbs ???
@@ -79,8 +82,8 @@ namespace TvThumbnails
 
       try
       {
-        string thumbNail = string.Format("{0}\\{1}{2}", _recTvThumbsFolder,
-                                         Path.ChangeExtension(Path.GetFileName(recFileName), null), ".jpg");
+        string thumbNail = string.Format("{0}\\{1}{2}", Thumbs.ThumbnailFolder,
+          Path.ChangeExtension(Path.GetFileName(recFileName), null), ".jpg");
 
         if (!File.Exists(thumbNail))
         {                    

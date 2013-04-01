@@ -87,9 +87,29 @@ namespace TvThumbnails.VideoThumbCreator
 
       bool Success = false;
       string strFilenamewithoutExtension = Path.ChangeExtension(aVideoPath, null);
-      string ffmpegArgs = string.Format("select=isnan(prev_selected_t)+gte(t-prev_selected_t" + "\\" + ",5),yadif=0:-1:0,scale=600:337,setsar=1:1,tile={0}x{1}", _previewColumns, _previewRows);
-      string ExtractorArgs = string.Format("-loglevel quiet -ss {0} -i \"{1}\" -vf {2} -vframes 1 -vsync 0 -an \"{3}_s.jpg\"", preGapSec, aVideoPath, ffmpegArgs, strFilenamewithoutExtension);
-      string ExtractorFallbackArgs = string.Format("-loglevel quiet -ss {0} -i \"{1}\" -vf {2} -vframes 1 -vsync 0 -an \"{3}_s.jpg\"", 5, aVideoPath, ffmpegArgs, strFilenamewithoutExtension);
+      int width = (int)Thumbs.ThumbLargeResolution;
+
+      string ffmpegArgs =
+        string.Format("select=isnan(prev_selected_t)+gte(t-prev_selected_t\\,5),") +
+        string.Format("yadif=0:-1:0,") +
+        string.Format("scale={0}:{1},", width, -1) +
+        string.Format("setsar=1:1,") +
+        string.Format("tile={0}x{1}", _previewColumns, _previewRows);
+
+      string ExtractorArgs =
+        string.Format("-loglevel quiet -ss {0} ", preGapSec) +
+        string.Format("-i \"{0}\" ", aVideoPath) + 
+        string.Format("-vf {0} ", ffmpegArgs) + 
+        string.Format("-vframes 1 -vsync 0 ") +
+        string.Format("-an \"{0}_s.jpg\"", strFilenamewithoutExtension);
+
+      string ExtractorFallbackArgs =
+        string.Format("-loglevel quiet -ss 5 ") +
+        string.Format("-i \"{0}\" ", aVideoPath) +
+        string.Format("-vf {0} ", ffmpegArgs) +
+        string.Format("-vframes 1 -vsync 0 ") +
+        string.Format("-an \"{0}_s.jpg\"", strFilenamewithoutExtension);
+
       try
       {
         // Use this for the working dir to be on the safe side
